@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Anish Automobiles - Process Mining Breach Analyzer</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    th {
+      background-color: #f2f2f2;
+      cursor: pointer;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ddd;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    tr:nth-child(even) {background-color: #f9f9f9;}
+    tr:hover {background-color: #f1f1f1;}
+  </style>
 </head>
 <body>
   <h1>Anish Automobiles - Breach Analyzer</h1>
@@ -30,17 +46,17 @@
     <table id="breachTable">
       <thead>
         <tr>
-          <th>Order ID</th>
-          <th>Customer ID</th>
+          <th onclick="sortTable(0)">Order ID</th>
+          <th onclick="sortTable(1)">Customer ID</th>
           <th>Item ID</th>
           <th>Export Flag</th>
           <th>Dangerous Flag</th>
           <th>Derived Scenario</th>
           <th>Scenario Used</th>
           <th>Planned Steps Count</th>
-          <th>As Is Steps Count</th>
+          <th>As-Is Steps Count</th>
           <th>Missing Steps Count</th>
-          <th>Out of Order Steps Count</th>
+          <th>Out-of-Order Steps Count</th>
           <th>Case ID</th>
           <th>Breach Type</th>
           <th>Details</th>
@@ -48,23 +64,7 @@
       </thead>
       <tbody></tbody>
     </table>
-    <div id="results-container">
-      <div id="table-container">
-        <table id="breachTable">
-          <thead>
-            <tr>
-              <th>Case ID</th>
-              <th>Breach Type</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div id="chart-container">
-        <img id="breachChart" alt="Breach Chart" style="display:none;" />
-      </div>
-    </div>
+
     <button id="downloadBtn">Download Report CSV</button>
   </section>
 
@@ -73,4 +73,29 @@
   </footer>
 
   <script src="app.js"></script>
+  <script>
+    function sortTable(columnIndex) {
+      const table = document.getElementById("breachTable");
+      let rows, switching, i, x, y, shouldSwitch;
+      switching = true;
+      while (switching) {
+        switching = false;
+        rows = table.rows;
+        for (i = 1; i < rows.length - 1; i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName("TD")[columnIndex];
+          y = rows[i + 1].getElementsByTagName("TD")[columnIndex];
+          if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+            shouldSwitch = true;
+            break;
+          }
+        }
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+        }
+      }
+    }
+  </script>
 </body>
+</html>
