@@ -7,6 +7,7 @@ const breachTableBody = document.querySelector('#breachTable tbody');
 const statusMessage = document.getElementById('statusMessage');
 const spinner = document.getElementById('spinner');
 const breachChart = document.getElementById('breachChart');
+const breachTable = document.getElementById('breachTable');
 
 analyzeBtn.addEventListener('click', handleAnalyze);
 downloadBtn.addEventListener('click', downloadCSV);
@@ -79,8 +80,6 @@ function renderResults() {
         return;
     }
 
-    breachResults.sort((a, b) => a.Order_ID.localeCompare(b.Order_ID));
-
     breachResults.forEach(breach => {
         const row = document.createElement('tr');
 
@@ -121,9 +120,9 @@ function downloadCSV() {
     }
 
     const header = [
-        "Order ID", "Customer ID", "Item ID", "Export Flag", "Dangerous Flag", "Derived Scenario", "Scenario Used",
-        "Planned Steps Count", "As-Is Steps Count", "Missing Steps Count", "Out of Order Steps Count",
-        "Case ID", "Breach Type", "Details"
+        "Order ID", "Customer ID", "Item ID", "Export Flag", "Dangerous Flag",
+        "Derived Scenario", "Scenario Used", "Planned Steps Count", "As-Is Steps Count",
+        "Missing Steps Count", "Out of Order Steps Count", "Case ID", "Breach Type", "Details"
     ];
 
     const rows = breachResults.map(breach => [
@@ -140,7 +139,7 @@ function downloadCSV() {
         breach["Out_of_Order_Steps_Count"],
         breach["Case_ID"],
         breach["Breach_Type"],
-        `${(breach["Missing steps"] || []).join("|")} | ${(breach["Out of Order Steps"] || []).join("|")}`
+        breach["Details"]
     ]);
 
     let csvContent = header.join(",") + "\n";
@@ -157,3 +156,4 @@ function downloadCSV() {
     a.click();
     document.body.removeChild(a);
 }
+
