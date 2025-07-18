@@ -42,7 +42,7 @@ def detect_breaches(expected, actual):
     return missing_steps, out_of_order_steps
 
 def generate_breach_plot(results):
-    type_counts = { "Missing": 0, "Out of Order": 0, "None": 0 }
+    type_counts = { "Missing": 0, "Out of Order": 0, "Both":0, "None": 0 }
 
     for r in results:
         missing = r.get("Missing steps", [])
@@ -54,6 +54,8 @@ def generate_breach_plot(results):
             type_counts["Missing"] += 1
         elif out_of_order:
             type_counts["Out of Order"] += 1
+        else:
+            type_counts["None"] += 1
 
         
     fig, ax = plt.subplots(figsize=(6, 4))
