@@ -35,7 +35,7 @@ async function handleAnalyze() {
     analyzeBtn.textContent = "Analyzing...";
     try {
         //  Adjust this URL for local testing
-        const response = await fetch('https://anish-validator-api.onrender.com/analyze', {
+        const response = await fetch('https://process-mining-ui.onrender.com', {
             method: 'POST',
             body: formData
         });
