@@ -26,7 +26,7 @@ def analyze_csv():
         results = []
 
         for _, row in df.iterrows():
-            order_id = row['order ID']
+            order_id = row['Order ID']
             customer_id = row['Customer ID']
             item_id = row['Item ID']
             export_flag = int(row['Export Flag'])
