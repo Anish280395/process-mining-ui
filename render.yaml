@@ -4,5 +4,5 @@ services:
     name: process-mining-ui
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python backend/app.py
+    startCommand: gunicorn backend.app:app
     plan: free
