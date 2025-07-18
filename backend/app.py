@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
-from utils import get_expected_steps, detect_breaches, generate_breach_plot
+from backend.utils import get_expected_steps, detect_breaches, generate_breach_plot
 import random
 import os
 
