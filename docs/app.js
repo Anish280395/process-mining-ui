@@ -35,7 +35,7 @@ async function handleAnalyze() {
     analyzeBtn.textContent = "Analyzing...";
     try {
         //  Adjust this URL for local testing
-        const response = await fetch('https://process-mining-ui.onrender.com', {
+        const response = await fetch('https://process-mining-ui.onrender.com/analyze', {
             method: 'POST',
             body: formData
         });
