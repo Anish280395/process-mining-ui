@@ -90,7 +90,7 @@ with open("sample_data.csv", "w", newline="", encoding="utf-8") as f:
         "Order ID", "Customer ID", "Item ID",
         "Export Flag", "Dangerous Flag",
         "Derived Scenario", "Scenario Used",
-        "Planned Steps", "As-Is Steps",
+        "Planned Steps", "As Is Steps",
         "Breach Type", "Breach Details"
     ])
     writer.writerows(rows)
