@@ -6,15 +6,10 @@ const csvFileInput = document.getElementById('csvFile');
 const breachTableBody = document.querySelector('#breachTable tbody');
 const statusMessage = document.getElementById('statusMessage');
 const spinner = document.getElementById('spinner');
-const breachTable = document.getElementById('breachTable');
 const breachChart = document.getElementById('breachChart');
-
-// Event Listeners
 
 analyzeBtn.addEventListener('click', handleAnalyze);
 downloadBtn.addEventListener('click', downloadCSV);
-
-//function
 
 async function handleAnalyze() {
     const file = csvFileInput.files[0];
@@ -33,12 +28,13 @@ async function handleAnalyze() {
 
     analyzeBtn.disabled = true;
     analyzeBtn.textContent = "Analyzing...";
+
     try {
-        //  Adjust this URL for local testing
         const response = await fetch('https://process-mining-ui.onrender.com/analyze', {
             method: 'POST',
             body: formData
         });
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Server error');
@@ -48,37 +44,25 @@ async function handleAnalyze() {
         breachResults = data.results;
         renderResults();
 
-        // Show chart if available
-        const chartImage = document.getElementById('breachChart');
         if (data.chart) {
-            chartImage.src = data.chart;
-            chartImage.style.display = "block";
-        } else {
-            chartImage.style.display = "none";
-        }
-
-        statusMessage.className = "success";
-        statusMessage.textContent = "Analysis completed successfully!";
-        spinner.style.display = "none"
-        // Handle of chart!
-        if (data.chart) {
-
             breachChart.src = data.chart;
             breachChart.style.display = "block";
         } else {
             breachChart.style.display = "none";
         }
 
-        analyzeBtn.disabled = false;
-        analyzeBtn.textContent = "Analyze Process";
+        statusMessage.className = "success";
+        statusMessage.textContent = "Analysis completed successfully!";
     } catch (error) {
         spinner.style.display = "none";
         breachChart.style.display = "none";
         statusMessage.className = "error";
-        statusMessage.textContext = `Error: ${error.message}`;
+        statusMessage.textContent = `Error: ${error.message}`;
+        alert(`Error: ${error.message}`);
+    } finally {
+        spinner.style.display = "none";
         analyzeBtn.disabled = false;
         analyzeBtn.textContent = "Analyze Process";
-        alert(`Error: ${error.message}`);
     }
 }
 
@@ -88,22 +72,44 @@ function renderResults() {
     if (breachResults.length === 0) {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
-        cell.colSpan = 5;
+        cell.colSpan = 14;
         cell.textContent = 'No breaches detected';
         row.appendChild(cell);
         breachTableBody.appendChild(row);
         return;
     }
 
+    breachResults.sort((a, b) => a.Order_ID.localeCompare(b.Order_ID));
+
     breachResults.forEach(breach => {
         const row = document.createElement('tr');
+
+        const detailsHtml = `
+      <div>
+        <strong>Scenario:</strong> ${breach.Scenario || ''}<br>
+        <strong>Missing Steps:</strong>
+        <ul>${(breach["Missing steps"] || []).map(step => `<li>${step}</li>`).join('')}</ul>
+        <strong>Order Issues:</strong>
+        <ul>${(breach["Out of Order Steps"] || []).map(issue => `<li>${issue}</li>`).join('')}</ul>
+      </div>
+    `;
+
         row.innerHTML = `
-            <td>${breach["Order_ID"]}</td>
-            <td>${breach["Customer_ID"]}</td>
-            <td>${breach["Item_ID"]}</td>
-            <td>${breach["Breach_Type"]}</td>
-            <td>${breach["Details"]}</td>
-        `;
+      <td>${breach["Order_ID"]}</td>
+      <td>${breach["Customer_ID"]}</td>
+      <td>${breach["Item_ID"]}</td>
+      <td>${breach["Export_Flag"]}</td>
+      <td>${breach["Dangerous_Flag"]}</td>
+      <td>${breach["Derived_Scenario"]}</td>
+      <td>${breach["Scenario_Used"]}</td>
+      <td>${breach["Planned_Steps_Count"]}</td>
+      <td>${breach["As_Is_Steps_Count"]}</td>
+      <td>${breach["Missing_Steps_Count"]}</td>
+      <td>${breach["Out_of_Order_Steps_Count"]}</td>
+      <td>${breach["Case_ID"]}</td>
+      <td>${breach["Breach_Type"]}</td>
+      <td>${detailsHtml}</td>
+    `;
         breachTableBody.appendChild(row);
     });
 }
@@ -114,11 +120,27 @@ function downloadCSV() {
         return;
     }
 
-    const header = ["Case ID", "Breach Type", "Details"];
+    const header = [
+        "Order ID", "Customer ID", "Item ID", "Export Flag", "Dangerous Flag", "Derived Scenario", "Scenario Used",
+        "Planned Steps Count", "As-Is Steps Count", "Missing Steps Count", "Out of Order Steps Count",
+        "Case ID", "Breach Type", "Details"
+    ];
+
     const rows = breachResults.map(breach => [
-        breach["Case ID"],
-        breach["Breach Type"],
-        breach["Details"]
+        breach["Order_ID"],
+        breach["Customer_ID"],
+        breach["Item_ID"],
+        breach["Export_Flag"],
+        breach["Dangerous_Flag"],
+        breach["Derived_Scenario"],
+        breach["Scenario_Used"],
+        breach["Planned_Steps_Count"],
+        breach["As_Is_Steps_Count"],
+        breach["Missing_Steps_Count"],
+        breach["Out_of_Order_Steps_Count"],
+        breach["Case_ID"],
+        breach["Breach_Type"],
+        `${(breach["Missing steps"] || []).join("|")} | ${(breach["Out of Order Steps"] || []).join("|")}`
     ]);
 
     let csvContent = header.join(",") + "\n";
