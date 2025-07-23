@@ -26,6 +26,8 @@ def analyze_csv():
             return jsonify({"error": f"CSV must include columns: {', '.join(required_columns)}"}), 400
 
         results = []
+        minutes_per_step = 10 # Assuming each step takes 10 minutes
+
         for _, row in df.iterrows():
             order_id = row['Order ID']
             customer_id = row['Customer ID']
@@ -47,6 +49,12 @@ def analyze_csv():
                 breach_type = "Out of Order"
             else:
                 breach_type = "None"
+            planned_steps_count = len(planned_steps)
+            as_is_steps_count = len(as_is_steps)
+
+            time_planned = planned_steps_count * minutes_per_step
+            time_actual = as_is_steps_count * minutes_per_step
+            time_deviation = time_actual - time_planned
 
             results.append({
                 "Order_ID": order_id,
@@ -56,8 +64,11 @@ def analyze_csv():
                 "Dangerous_Flag": dangerous_flag,
                 "Derived_Scenario": derived_scenario,
                 "Scenario_Used": scenario_used,
-                "Planned_Steps_Count": len(planned_steps),
-                "As_Is_Steps_Count": len(as_is_steps),
+                "Planned_Steps_Count": planned_steps_count,
+                "As_Is_Steps_Count": as_is_steps_count,
+                "Time_Planned_Minutes": time_planned,
+                "Time_Actual_Minutes": time_actual,
+                "Time_Deviation_Minutes": time_deviation,
                 "Missing_Steps_Count": len(missing_steps),
                 "Out_of_Order_Steps_Count": len(wrong_order),
                 "Missing_Steps": missing_steps,
@@ -77,12 +88,14 @@ def analyze_csv():
             scenario_summary = df_results.groupby('Derived_Scenario').agg({
                 'Missing_Steps_Count': 'mean',
                 'Out_of_Order_Steps_Count': 'mean',
+                'Time_Deviation_Minutes': 'mean',
                 'Order_ID': 'count',
                 'Breach_Type': lambda x: x.mode()[0] if not x.mode().empty else 'None'
             }).rename(columns={
                 'Order_ID': 'Num_Orders',
                 'Missing_Steps_Count': 'Avg_Missing_Steps',
                 'Out_of_Order_Steps_Count': 'Avg_Out_of_Order_Steps',
+                'Time_Deviation_Minutes': 'Avg_Time_Deviation',
                 'Breach_Type': 'Most_Common_Breach_Type'
             }).reset_index()
             scenario_summary_json = scenario_summary.to_dict(orient='records')
