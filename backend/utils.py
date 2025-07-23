@@ -45,14 +45,14 @@ def generate_breach_plot(results):
     type_counts = { "Missing": 0, "Out of Order": 0, "Both":0, "None": 0 }
 
     for r in results:
-        missing = r.get("Missing steps", [])
-        out_of_order = r.get("Out of Order Steps", [])
+        missing = r.get("Missing steps", 0)
+        out_of_order = r.get("Out of Order Steps", 0)
 
-        if missing and out_of_order:
+        if missing > 0 and out_of_order > 0:
             type_counts["Both"] += 1
-        elif missing:
+        elif missing > 0:
             type_counts["Missing"] += 1
-        elif out_of_order:
+        elif out_of_order > 0:
             type_counts["Out of Order"] += 1
         else:
             type_counts["None"] += 1
