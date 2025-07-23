@@ -84,14 +84,12 @@ function renderResults() {
         const row = document.createElement('tr');
 
         const detailsHtml = `
-      <div>
-        <strong>Scenario:</strong> ${breach.Scenario || ''}<br>
-        <strong>Missing Steps:</strong>
-        <ul>${(breach["Missing steps"] || []).map(step => `<li>${step}</li>`).join('')}</ul>
-        <strong>Order Issues:</strong>
-        <ul>${(breach["Out of Order Steps"] || []).map(issue => `<li>${issue}</li>`).join('')}</ul>
-      </div>
-    `;
+            ${breach["Details"] || "<em>No Breach</em>"}               <!-- HTML list built in Flask -->
+            <br>
+            <strong>Counts:</strong>
+            Missing - ${breach["Missing_Steps_Count"]}&nbsp;&nbsp;|&nbsp;&nbsp;
+            Out-of-Order - ${breach["Out_of_Order_Steps_Count"]}
+            `;
 
         row.innerHTML = `
       <td>${breach["Order_ID"]}</td>
