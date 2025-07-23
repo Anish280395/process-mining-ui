@@ -195,15 +195,15 @@ footer {
     background-color: #f2f2f2;
 }
 
-/* Breach Results Table Header Styling */
+/* Force breachTable header styling */
 #breachTable thead {
-    background-color: #007bff;
+    background-color: #007bff !important;
     /* Bootstrap blue */
-    color: white;
+    color: white !important;
 }
 
 #breachTable thead th {
-    font-weight: bold;
-    text-align: left;
-    padding: 8px;
+    font-weight: bold !important;
+    text-align: left !important;
+    padding: 8px !important;
 }
