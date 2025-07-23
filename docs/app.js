@@ -44,7 +44,9 @@ async function handleAnalyze() {
         const data = await response.json();
         breachResults = data.results;
         renderResults();
-
+        if (data.scenario_summary) {
+            renderScenarioSummary(data.scenario_summary);
+        }
         if (data.chart) {
             breachChart.src = data.chart;
             breachChart.style.display = "block";
@@ -154,4 +156,20 @@ function downloadCSV() {
     a.click();
     document.body.removeChild(a);
 }
+function renderScenarioSummary(summary) {
+    const summaryTableBody = document.querySelector('#scenarioSummaryTable tbody');
+    if (!summaryTableBody) return; // avoid errors if no table in DOM
+    summaryTableBody.innerHTML = '';
 
+    summary.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.Derived_Scenario || row.Scenario}</td>
+            <td>${row.Num_Orders}</td>
+            <td>${row.Most_Common_Breach_Type}</td>
+            <td>${row.Avg_Missing_Steps.toFixed(2)}</td>
+            <td>${row.Avg_Out_of_Order_Steps.toFixed(2)}</td>
+        `;
+        summaryTableBody.appendChild(tr);
+    });
+}
