@@ -11,10 +11,8 @@ def safe_duration(start, end):
     try:
         if pd.isna(start) or pd.isna(end):
             return None
-        dur = (pd.to_datetime(end) - pd.to_datetime(start)).total_seconds() / 60
-        if dur < 0:
-            return None
-        return dur
+        duration = (end - start).total_seconds() / 60
+        return duration if duration >= 0 else None
     except Exception:
         return None
 
@@ -27,7 +25,7 @@ def analyze():
         file = request.files['file']
         filename = file.filename.lower()
 
-        # Support CSV and Excel
+        # Support CSV and Excel formats
         if filename.endswith('.csv'):
             df = pd.read_csv(file)
         elif filename.endswith(('.xls', '.xlsx')):
@@ -36,7 +34,7 @@ def analyze():
         else:
             return jsonify({"error": "Unsupported file format. Upload CSV or Excel."}), 400
 
-        # Validate required columns
+        # Required columns list
         required_columns = [
             'Order-No.', 'Customer-No.', 'Item-No.',
             'Export to not EU [1 = n, 2 = y]', 'Dangerous Good [1 = n, 2 = y]',
@@ -56,11 +54,25 @@ def analyze():
         if missing_cols:
             return jsonify({"error": f"Missing columns: {missing_cols}"}), 400
 
+        # Convert datetime columns explicitly with coercion
+        date_cols = [
+            'Planed-Master-Order-Processing-Start-Time',
+            'Planed-Master-Order-Processing-End-Time',
+            'As-Is-Real-Order-Processing-Start-Time',
+            'As-Is-Real-Order-Processing-End-Time'
+        ]
+        for col in date_cols:
+            df[col] = pd.to_datetime(df[col], errors='coerce')
+
+        # Debug print (optional, remove in production)
+        print("Datetime columns types after conversion:")
+        for col in date_cols:
+            print(f"{col} types:\n{df[col].apply(type).value_counts()}")
+
         results = []
         grouped = df.groupby(['Order-No.', 'Item-No.'])
 
         for (order_id, item_id), group in grouped:
-            # Sort and get planned and actual step sequences
             planned_steps = list(group.sort_values('Planed-Master-Order-Processing-Ongoing Position No.')[
                 'Planed-Master-Order-Processing-Position-No. as an ID'])
             actual_steps = list(group.sort_values('As-Is-Real-Order-Processing-Ongoing Position No.')[
@@ -68,7 +80,6 @@ def analyze():
 
             missing_steps, out_of_order_steps = detect_breaches(planned_steps, actual_steps)
 
-            # Calculate durations safely
             planned_start = group['Planed-Master-Order-Processing-Start-Time'].min()
             planned_end = group['Planed-Master-Order-Processing-End-Time'].max()
             actual_start = group['As-Is-Real-Order-Processing-Start-Time'].min()
@@ -81,7 +92,6 @@ def analyze():
             total_yield = group['Final Yield Quantity'].fillna(0).sum()
             total_scrap = group['Total Scrap Quantity'].fillna(0).sum()
 
-            # Determine breach type
             if missing_steps and out_of_order_steps:
                 breach_type = "Both"
             elif missing_steps:
@@ -91,7 +101,6 @@ def analyze():
             else:
                 breach_type = "None"
 
-            # Prepare details HTML
             details_parts = []
             if missing_steps:
                 details_parts.append("<strong>Missing Steps:</strong><ul>" + ''.join(f"<li>{s}</li>" for s in missing_steps) + "</ul>")
