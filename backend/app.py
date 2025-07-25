@@ -7,6 +7,17 @@ from backend.utils import detect_breaches, generate_breach_plot
 app = Flask(__name__)
 CORS(app)
 
+def safe_duration(start, end):
+    try:
+        if pd.isna(start) or pd.isna(end):
+            return None
+        dur = (pd.to_datetime(end) - pd.to_datetime(start)).total_seconds() / 60
+        if dur < 0:
+            return None
+        return dur
+    except Exception:
+        return None
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
@@ -16,7 +27,7 @@ def analyze():
         file = request.files['file']
         filename = file.filename.lower()
 
-        # Support both CSV and Excel formats
+        # Support CSV and Excel
         if filename.endswith('.csv'):
             df = pd.read_csv(file)
         elif filename.endswith(('.xls', '.xlsx')):
@@ -25,7 +36,7 @@ def analyze():
         else:
             return jsonify({"error": "Unsupported file format. Upload CSV or Excel."}), 400
 
-        # Required columns (Based on test data)
+        # Validate required columns
         required_columns = [
             'Order-No.', 'Customer-No.', 'Item-No.',
             'Export to not EU [1 = n, 2 = y]', 'Dangerous Good [1 = n, 2 = y]',
@@ -49,6 +60,7 @@ def analyze():
         grouped = df.groupby(['Order-No.', 'Item-No.'])
 
         for (order_id, item_id), group in grouped:
+            # Sort and get planned and actual step sequences
             planned_steps = list(group.sort_values('Planed-Master-Order-Processing-Ongoing Position No.')[
                 'Planed-Master-Order-Processing-Position-No. as an ID'])
             actual_steps = list(group.sort_values('As-Is-Real-Order-Processing-Ongoing Position No.')[
@@ -56,19 +68,20 @@ def analyze():
 
             missing_steps, out_of_order_steps = detect_breaches(planned_steps, actual_steps)
 
-            planned_start = pd.to_datetime(group['Planed-Master-Order-Processing-Start-Time']).min()
-            planned_end = pd.to_datetime(group['Planed-Master-Order-Processing-End-Time']).max()
-            planned_duration = (planned_end - planned_start).total_seconds() / 60 if pd.notna(planned_start) and pd.notna(planned_end) else None
+            # Calculate durations safely
+            planned_start = group['Planed-Master-Order-Processing-Start-Time'].min()
+            planned_end = group['Planed-Master-Order-Processing-End-Time'].max()
+            actual_start = group['As-Is-Real-Order-Processing-Start-Time'].min()
+            actual_end = group['As-Is-Real-Order-Processing-End-Time'].max()
 
-            actual_start = pd.to_datetime(group['As-Is-Real-Order-Processing-Start-Time']).min()
-            actual_end = pd.to_datetime(group['As-Is-Real-Order-Processing-End-Time']).max()
-            actual_duration = (actual_end - actual_start).total_seconds() / 60 if pd.notna(actual_start) and pd.notna(actual_end) else None
+            planned_duration = safe_duration(planned_start, planned_end)
+            actual_duration = safe_duration(actual_start, actual_end)
+            time_deviation = (actual_duration - planned_duration) if (planned_duration is not None and actual_duration is not None) else None
 
-            time_deviation = actual_duration - planned_duration if planned_duration is not None and actual_duration is not None else None
+            total_yield = group['Final Yield Quantity'].fillna(0).sum()
+            total_scrap = group['Total Scrap Quantity'].fillna(0).sum()
 
-            total_yield = group['Final Yield Quantity'].sum()
-            total_scrap = group['Total Scrap Quantity'].sum()
-
+            # Determine breach type
             if missing_steps and out_of_order_steps:
                 breach_type = "Both"
             elif missing_steps:
@@ -78,6 +91,7 @@ def analyze():
             else:
                 breach_type = "None"
 
+            # Prepare details HTML
             details_parts = []
             if missing_steps:
                 details_parts.append("<strong>Missing Steps:</strong><ul>" + ''.join(f"<li>{s}</li>" for s in missing_steps) + "</ul>")
@@ -118,7 +132,7 @@ def analyze():
                 'Out_of_Order_Steps_Count': 'mean',
                 'Time_Deviation_Minutes': 'mean',
                 'Order_ID': 'count',
-                'Breach_Type': lambda x: x.mode()[0] if not x.mode().empty else 'None',
+                'Breach_Type': lambda x: x.mode().iloc[0] if not x.mode().empty else 'None',
                 'Total_Yield': 'sum',
                 'Total_Scrap': 'sum'
             }).rename(columns={
