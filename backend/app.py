@@ -97,6 +97,11 @@ def analyze():
             actual_duration = safe_duration(actual_start, actual_end)
             time_deviation = (actual_duration - planned_duration) if (planned_duration is not None and actual_duration is not None) else None
 
+            planned_start_str = planned_start.strftime("%Y-%m-%d %H:%M") if pd.notna(planned_start) else None
+            planned_end_str = planned_end.strftime("%Y-%m-%d %H:%M") if pd.notna(planned_end) else None
+            actual_start_str = actual_start.strftime("%Y-%m-%d %H:%M") if pd.notna(actual_start) else None
+            actual_end_str = actual_end.strftime("%Y-%m-%d %H:%M") if pd.notna(actual_end) else None
+
             total_yield = group['Final Yield Quantity'].fillna(0).sum()
             total_scrap = group['Total Scrap Quantity'].fillna(0).sum()
 
@@ -116,6 +121,8 @@ def analyze():
                 details_parts.append("<strong>Out of Order:</strong><ul>" + ''.join(f"<li>{s}</li>" for s in out_of_order_steps) + "</ul>")
             if not details_parts:
                 details_parts.append("<strong>No Breach</strong>")
+            # Add counts inside Details too
+            details_parts.append(f"<strong>Counts:</strong> Missing - {len(missing_steps)} | Out-of-Order - {len(out_of_order_steps)}")
 
             results.append({
                 "Order_ID": order_id,
@@ -127,11 +134,14 @@ def analyze():
                 "Scenario_Used": group['Planed-Master-Scenario-No.'].iloc[0],
                 "Planned_Steps_Count": len(planned_steps),
                 "As_Is_Steps_Count": len(actual_steps),
+                "Planned_Start": planned_start_str,
+                "Planned_End": planned_end_str,
+                "Actual_Start": actual_start_str,
+                "Actual_End": actual_end_str,
                 "Time_Planned_Minutes": planned_duration,
                 "Time_Actual_Minutes": actual_duration,
                 "Time_Deviation_Minutes": time_deviation,
-                "Missing_Steps_Count": len(missing_steps),
-                "Out_of_Order_Steps_Count": len(out_of_order_steps),
+                # Removed counts here
                 "Missing_Steps": missing_steps,
                 "Out_of_Order_Steps": out_of_order_steps,
                 "Case_ID": f"{order_id}_{item_id}",
