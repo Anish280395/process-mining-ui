@@ -16,6 +16,16 @@ def safe_duration(start, end):
     except Exception:
         return None
 
+def convert_types(obj):
+    if isinstance(obj, list):
+        return [convert_types(i) for i in obj]
+    elif isinstance(obj, dict):
+        return {k: convert_types(v) for k, v in obj.items()}
+    elif hasattr(obj, 'item'):  # numpy scalar
+        return obj.item()
+    else:
+        return obj
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
@@ -25,7 +35,6 @@ def analyze():
         file = request.files['file']
         filename = file.filename.lower()
 
-        # Support CSV and Excel formats
         if filename.endswith('.csv'):
             df = pd.read_csv(file)
         elif filename.endswith(('.xls', '.xlsx')):
@@ -34,7 +43,6 @@ def analyze():
         else:
             return jsonify({"error": "Unsupported file format. Upload CSV or Excel."}), 400
 
-        # Required columns list
         required_columns = [
             'Order-No.', 'Customer-No.', 'Item-No.',
             'Export to not EU [1 = n, 2 = y]', 'Dangerous Good [1 = n, 2 = y]',
@@ -54,7 +62,6 @@ def analyze():
         if missing_cols:
             return jsonify({"error": f"Missing columns: {missing_cols}"}), 400
 
-        # Convert datetime columns explicitly with coercion
         date_cols = [
             'Planed-Master-Order-Processing-Start-Time',
             'Planed-Master-Order-Processing-End-Time',
@@ -63,11 +70,6 @@ def analyze():
         ]
         for col in date_cols:
             df[col] = pd.to_datetime(df[col], errors='coerce')
-
-        # Debug print (optional, remove in production)
-        print("Datetime columns types after conversion:")
-        for col in date_cols:
-            print(f"{col} types:\n{df[col].apply(type).value_counts()}")
 
         results = []
         grouped = df.groupby(['Order-No.', 'Item-No.'])
@@ -133,6 +135,9 @@ def analyze():
                 "Total_Scrap": total_scrap
             })
 
+        # Convert any numpy types to native Python types for JSON serialization
+        safe_results = convert_types(results)
+
         df_results = pd.DataFrame(results)
 
         if not df_results.empty:
@@ -153,20 +158,21 @@ def analyze():
                 'Total_Yield': 'Sum_Total_Yield',
                 'Total_Scrap': 'Sum_Total_Scrap'
             }).reset_index()
-            scenario_summary_json = scenario_summary.to_dict(orient='records')
+            scenario_summary_json = convert_types(scenario_summary.to_dict(orient='records'))
         else:
             scenario_summary_json = []
 
         chart_base64 = generate_breach_plot(results)
 
         return jsonify({
-            "results": results,
+            "results": safe_results,
             "scenario_summary": scenario_summary_json,
             "chart": chart_base64
         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000, debug=True)
