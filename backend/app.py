@@ -26,6 +26,12 @@ def convert_types(obj):
     else:
         return obj
 
+def most_common_non_none(series):
+    filtered = series[series != 'None']
+    if filtered.empty:
+        return 'None'
+    return filtered.mode().iloc[0]
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
@@ -135,7 +141,6 @@ def analyze():
                 "Total_Scrap": total_scrap
             })
 
-        # Convert any numpy types to native Python types for JSON serialization
         safe_results = convert_types(results)
 
         df_results = pd.DataFrame(results)
@@ -146,7 +151,7 @@ def analyze():
                 'Out_of_Order_Steps_Count': 'mean',
                 'Time_Deviation_Minutes': 'mean',
                 'Order_ID': 'count',
-                'Breach_Type': lambda x: x.mode().iloc[0] if not x.mode().empty else 'None',
+                'Breach_Type': most_common_non_none,
                 'Total_Yield': 'sum',
                 'Total_Scrap': 'sum'
             }).rename(columns={
