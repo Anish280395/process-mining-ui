@@ -157,8 +157,6 @@ def analyze():
 
         if not df_results.empty:
             scenario_summary = df_results.groupby('Derived_Scenario').agg({
-                'Missing_Steps_Count': 'mean',
-                'Out_of_Order_Steps_Count': 'mean',
                 'Time_Deviation_Minutes': 'mean',
                 'Order_ID': 'count',
                 'Breach_Type': most_common_non_none,
@@ -166,8 +164,6 @@ def analyze():
                 'Total_Scrap': 'sum'
             }).rename(columns={
                 'Order_ID': 'Num_Orders',
-                'Missing_Steps_Count': 'Avg_Missing_Steps',
-                'Out_of_Order_Steps_Count': 'Avg_Out_of_Order_Steps',
                 'Time_Deviation_Minutes': 'Avg_Time_Deviation_Minutes',
                 'Breach_Type': 'Most_Common_Breach_Type',
                 'Total_Yield': 'Sum_Total_Yield',
