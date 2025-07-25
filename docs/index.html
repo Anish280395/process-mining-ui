@@ -6,8 +6,8 @@
   <title>Anish Automobiles - Process Mining Breach Analyzer</title>
   <link rel="stylesheet" href="style.css">
   <style>
+    /* General th styling without background color to avoid overriding */
     th {
-      background-color: #f2f2f2;
       cursor: pointer;
     }
     th, td {
@@ -18,8 +18,29 @@
       border-collapse: collapse;
       width: 100%;
     }
-    tr:nth-child(even) {background-color: #f9f9f9;}
-    tr:hover {background-color: #f1f1f1;}
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    /* Specific styling for breachTable headers */
+    #breachTable thead {
+      background-color: #007bff;
+      color: white;
+    }
+
+    #breachTable thead th {
+      font-weight: bold;
+      padding: 8px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    #breachTable thead th:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
@@ -70,6 +91,7 @@
 
     <button id="downloadBtn">Download Report CSV</button>
   </section>
+
   <section id="scenario-summary-section">
     <h2>Scenario Summary</h2>
     <table id="scenarioSummaryTable">
@@ -87,6 +109,7 @@
       </tbody>
     </table>
   </section>
+
   <footer>
     <p>© 2025 Anish Automobiles - Process Mining Thesis Project</p>
   </footer>
