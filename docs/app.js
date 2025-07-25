@@ -11,6 +11,14 @@ const breachChart = document.getElementById('breachChart');
 analyzeBtn.addEventListener('click', handleAnalyze);
 downloadBtn.addEventListener('click', downloadCSV);
 
+// Helper function to safely format numbers with two decimals
+function formatNumber(value) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return '';
+    }
+    return Number(value).toFixed(2);
+}
+
 async function handleAnalyze() {
     const file = csvFileInput.files[0];
     if (!file) {
@@ -104,9 +112,9 @@ function renderResults() {
           <td>${breach["Planned_End"] || ''}</td>
           <td>${breach["Actual_Start"] || ''}</td>
           <td>${breach["Actual_End"] || ''}</td>
-          <td>${breach["Time_Planned_Minutes"]?.toFixed(2) || ''}</td>
-          <td>${breach["Time_Actual_Minutes"]?.toFixed(2) || ''}</td>
-          <td>${breach["Time_Deviation_Minutes"]?.toFixed(2) || ''}</td>
+          <td>${formatNumber(breach["Time_Planned_Minutes"])}</td>
+          <td>${formatNumber(breach["Time_Actual_Minutes"])}</td>
+          <td>${formatNumber(breach["Time_Deviation_Minutes"])}</td>
           <td>${breach["Case_ID"]}</td>
           <td>${breach["Breach_Type"]}</td>
           <td>${detailsHtml}</td>
@@ -144,9 +152,9 @@ function downloadCSV() {
         breach["Planned_End"] || '',
         breach["Actual_Start"] || '',
         breach["Actual_End"] || '',
-        breach["Time_Planned_Minutes"]?.toFixed(2) || '',
-        breach["Time_Actual_Minutes"]?.toFixed(2) || '',
-        breach["Time_Deviation_Minutes"]?.toFixed(2) || '',
+        formatNumber(breach["Time_Planned_Minutes"]),
+        formatNumber(breach["Time_Actual_Minutes"]),
+        formatNumber(breach["Time_Deviation_Minutes"]),
         breach["Case_ID"],
         breach["Breach_Type"],
         breach["Details"]
@@ -154,7 +162,7 @@ function downloadCSV() {
 
     let csvContent = header.join(",") + "\n";
     rows.forEach(r => {
-        csvContent += r.map(val => `"${val}"`).join(",") + "\n"; // Quote values for safety
+        csvContent += r.map(val => `"${val}"`).join(",") + "\n";
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
