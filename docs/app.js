@@ -84,7 +84,7 @@ function renderResults() {
     if (breachResults.length === 0) {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
-        cell.colSpan = 17;
+        cell.colSpan = 19;
         cell.textContent = 'No breaches detected';
         row.appendChild(cell);
         breachTableBody.appendChild(row);
@@ -94,9 +94,7 @@ function renderResults() {
     breachResults.forEach(breach => {
         const row = document.createElement('tr');
 
-        const detailsHtml = `
-            ${breach["Details"] || "<em>No Breach</em>"}
-        `;
+        const detailsHtml = breach["Details"] || "<em>No Breach</em>";
 
         row.innerHTML = `
           <td>${breach["Order_ID"]}</td>

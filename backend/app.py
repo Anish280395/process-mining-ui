@@ -26,12 +26,6 @@ def convert_types(obj):
     else:
         return obj
 
-def most_common_non_none(series):
-    filtered = series[series != 'None']
-    if filtered.empty:
-        return 'None'
-    return filtered.mode().iloc[0]
-
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
@@ -41,6 +35,7 @@ def analyze():
         file = request.files['file']
         filename = file.filename.lower()
 
+        # Support CSV and Excel files
         if filename.endswith('.csv'):
             df = pd.read_csv(file)
         elif filename.endswith(('.xls', '.xlsx')):
@@ -49,6 +44,7 @@ def analyze():
         else:
             return jsonify({"error": "Unsupported file format. Upload CSV or Excel."}), 400
 
+        # Required columns
         required_columns = [
             'Order-No.', 'Customer-No.', 'Item-No.',
             'Export to not EU [1 = n, 2 = y]', 'Dangerous Good [1 = n, 2 = y]',
@@ -68,6 +64,7 @@ def analyze():
         if missing_cols:
             return jsonify({"error": f"Missing columns: {missing_cols}"}), 400
 
+        # Convert date/time columns to datetime objects
         date_cols = [
             'Planed-Master-Order-Processing-Start-Time',
             'Planed-Master-Order-Processing-End-Time',
@@ -121,7 +118,7 @@ def analyze():
                 details_parts.append("<strong>Out of Order:</strong><ul>" + ''.join(f"<li>{s}</li>" for s in out_of_order_steps) + "</ul>")
             if not details_parts:
                 details_parts.append("<strong>No Breach</strong>")
-            # Add counts inside Details too
+            # Add counts inside Details
             details_parts.append(f"<strong>Counts:</strong> Missing - {len(missing_steps)} | Out-of-Order - {len(out_of_order_steps)}")
 
             results.append({
@@ -141,7 +138,8 @@ def analyze():
                 "Time_Planned_Minutes": planned_duration,
                 "Time_Actual_Minutes": actual_duration,
                 "Time_Deviation_Minutes": time_deviation,
-                # Removed counts here
+                "Missing_Steps_Count": len(missing_steps),
+                "Out_of_Order_Steps_Count": len(out_of_order_steps),
                 "Missing_Steps": missing_steps,
                 "Out_of_Order_Steps": out_of_order_steps,
                 "Case_ID": f"{order_id}_{item_id}",
@@ -153,7 +151,7 @@ def analyze():
 
         safe_results = convert_types(results)
 
-        df_results = pd.DataFrame(results)
+        df_results = pd.DataFrame(safe_results)
 
         if not df_results.empty:
             scenario_summary = df_results.groupby('Derived_Scenario').agg({
@@ -187,7 +185,6 @@ def analyze():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000, debug=True)
