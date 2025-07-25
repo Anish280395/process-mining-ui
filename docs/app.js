@@ -181,13 +181,17 @@ function renderScenarioSummary(summary) {
     summaryTableBody.innerHTML = '';
 
     summary.forEach(row => {
+        // safe formatting of averages
+        const avgMissing = (typeof row.Avg_Missing_Steps === 'number') ? row.Avg_Missing_Steps.toFixed(2) : '';
+        const avgOutOfOrder = (typeof row.Avg_Out_of_Order_Steps === 'number') ? row.Avg_Out_of_Order_Steps.toFixed(2) : '';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${row.Derived_Scenario || row.Scenario}</td>
             <td>${row.Num_Orders}</td>
             <td>${row.Most_Common_Breach_Type}</td>
-            <td>${row.Avg_Missing_Steps.toFixed(2)}</td>
-            <td>${row.Avg_Out_of_Order_Steps.toFixed(2)}</td>
+            <td>${avgMissing}</td>
+            <td>${avgOutOfOrder}</td>
         `;
         summaryTableBody.appendChild(tr);
     });
