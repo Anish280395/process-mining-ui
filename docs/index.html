@@ -6,46 +6,104 @@
   <title>Anish Automobiles - Process Mining Breach Analyzer</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* General th styling without background color to avoid overriding */
-    th {
-      cursor: pointer;
-    }
-    th, td {
-      padding: 8px;
-      border: 1px solid #ddd;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-    }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-    tr:hover {
-      background-color: #f1f1f1;
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f6f8;
+      color: #333;
     }
 
-    /* Specific styling for breachTable headers */
-    #breachTable thead {
-      background-color: #007bff;
+    h1, h2 {
+      color: #1a202c;
+    }
+
+    nav a {
+      margin-right: 10px;
+      text-decoration: none;
+      color: #2b6cb0;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    .tab-container {
+      margin-top: 20px;
+    }
+
+    .tab {
+      display: inline-block;
+      background-color: #edf2f7;
+      color: #2d3748;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
+      border: 1px solid #cbd5e0;
+      margin-right: 5px;
+    }
+
+    .tab.active {
+      background-color: #ffffff;
+      font-weight: bold;
+      border-bottom: none;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 20px;
+      background-color: #ffffff;
+      border: 1px solid #cbd5e0;
+      border-top: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #2b6cb0;
       color: white;
     }
 
-    #breachTable thead th {
+    #statusMessage {
       font-weight: bold;
-      padding: 8px;
-      text-align: left;
-      cursor: pointer;
     }
 
-    #breachTable thead th:hover {
-      background-color: #0056b3;
+    #statusMessage.success {
+      color: green;
+    }
+
+    #statusMessage.error {
+      color: red;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      padding: 15px;
+      font-size: 0.9em;
+      background-color: #e2e8f0;
+      color: #4a5568;
     }
   </style>
 </head>
 <body>
   <h1>Anish Automobiles - Breach Analyzer</h1>
-  
+
   <nav>
     <a href="index.html">Home</a> |
     <a href="about.html">About</a>
@@ -60,36 +118,57 @@
     </div>
   </section>
 
-  <section id="results-section">
-    <h2>Breach Results</h2>
-    <img id="breachChart" src="" alt="Breach Chart" style="display: none; width: 50%; float: right; margin: 10px;" />
+  <section class="tab-container">
+    <div class="tab active" data-tab="basic">Basic Info</div>
+    <div class="tab" data-tab="timing">Timing Info</div>
+    <div class="tab" data-tab="breach">Breach Details</div>
+    <div class="tab" data-tab="quantity">Production Quantities</div>
+  </section>
 
-<table id="breachTable">
-  <thead>
-    <tr>
-          <th onclick="sortTable(0)">Order ID</th>
-          <th onclick="sortTable(1)">Customer ID</th>
-          <th>Item ID</th>
-          <th>Export Flag</th>
-          <th>Dangerous Flag</th>
-          <th>Derived Scenario</th>
-          <th>Scenario Used</th>
-          <th>Planned Steps Count</th>
-          <th>As-Is Steps Count</th>
-          <th>Planned Start</th>
-          <th>Planned End</th>
-          <th>Actual Start</th>
-          <th>Actual End</th>
-          <th>Time Planned (min)</th>
-          <th>Time Actual (min)</th>
-          <th>Time Deviation (min)</th>
-          <th>Case ID</th>
-          <th>Breach Type</th>
-          <th>Details</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <section id="results-section">
+    <div id="basic" class="tab-content active">
+      <table id="basicTable">
+        <thead>
+          <tr>
+            <th>Order ID</th><th>Item ID</th><th>Customer ID</th><th>Export Flag</th><th>Dangerous Flag</th><th>Derived Scenario</th><th>Scenario Used</th><th>Case ID</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="timing" class="tab-content">
+      <table id="timingTable">
+        <thead>
+          <tr>
+            <th>Order ID</th><th>Item ID</th><th>Planned Start</th><th>Planned End</th><th>Actual Start</th><th>Actual End</th><th>Planned Time (min)</th><th>Actual Time (min)</th><th>Deviation (min)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="breach" class="tab-content">
+      <table id="breachTable">
+        <thead>
+          <tr>
+            <th>Order ID</th><th>Item ID</th><th>Planned Steps</th><th>As-Is Steps</th><th>Breach Type</th><th>Missing Count</th><th>Out of Order Count</th><th>Details</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="quantity" class="tab-content">
+      <table id="quantityTable">
+        <thead>
+          <tr>
+            <th>Order ID</th><th>Item ID</th><th>Final Yield</th><th>Total Scrap</th><th>Quantity Deviation (%)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
     <button id="downloadBtn">Download Report CSV</button>
   </section>
@@ -106,9 +185,7 @@
           <th>Average Out of Order Steps</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- Filled dynamically by JS -->
-      </tbody>
+      <tbody></tbody>
     </table>
   </section>
 
@@ -118,28 +195,16 @@
 
   <script src="app.js"></script>
   <script>
-    function sortTable(columnIndex) {
-      const table = document.getElementById("breachTable");
-      let rows, switching, i, x, y, shouldSwitch;
-      switching = true;
-      while (switching) {
-        switching = false;
-        rows = table.rows;
-        for (i = 1; i < rows.length - 1; i++) {
-          shouldSwitch = false;
-          x = rows[i].getElementsByTagName("TD")[columnIndex];
-          y = rows[i + 1].getElementsByTagName("TD")[columnIndex];
-          if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-            shouldSwitch = true;
-            break;
-          }
-        }
-        if (shouldSwitch) {
-          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-          switching = true;
-        }
-      }
-    }
+    // Tab toggle logic
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+      });
+    });
   </script>
 </body>
 </html>
