@@ -33,17 +33,19 @@ def generate_breach_plot(results):
             type_counts["None"] += 1
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    bars = ax.bar(type_counts.keys(), type_counts.values(), color='tomato')
-    ax.set_title("Breach Type Frequency")
+    colors = ['#f56565', '#ed8936', '#ecc94b', '#48bb78']  # Red, Orange, Yellow, Green
+    bars = ax.bar(type_counts.keys(), type_counts.values(), color=colors)
+    ax.set_title("Breach Type Frequency", fontsize=14, color="#2d3748")
     ax.set_ylabel("Number of Orders")
     ax.set_xlabel("Breach Type")
     ax.grid(axis="y", linestyle="--", alpha=0.6)
+    ax.tick_params(colors="#2d3748")
 
     for bar in bars:
         height = bar.get_height()
         ax.annotate(f'{height}', xy=(bar.get_x() + bar.get_width() / 2, height),
                     xytext=(0, 3), textcoords="offset points",
-                    ha='center', va='bottom')
+                    ha='center', va='bottom', color="#2d3748")
 
     buf = io.BytesIO()
     plt.tight_layout()
