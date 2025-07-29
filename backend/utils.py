@@ -55,3 +55,7 @@ def generate_breach_plot(results):
     plt.close()
 
     return f"data:image/png;base64,{encoded}"
+
+def calculate_quantity_deviation(yield_qty, scrap_qty):
+    total = yield_qty + scrap_qty
+    return (scrap_qty / total * 100) if total > 0 else 0.0
