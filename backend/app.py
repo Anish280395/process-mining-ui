@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import io
-from backend.utils import detect_breaches, generate_breach_plot
+from backend.utils import detect_breaches, generate_breach_plot, calculate_quantity_deviation
 
 app = Flask(__name__)
 CORS(app)
@@ -146,7 +146,8 @@ def analyze():
                 "Breach_Type": breach_type,
                 "Details": "<br>".join(details_parts),
                 "Total_Yield": total_yield,
-                "Total_Scrap": total_scrap
+                "Total_Scrap": total_scrap,
+                "Quantity_Deviation_Percent": calculate_quantity_deviation(total_yield, total_scrap),
             })
 
         safe_results = convert_types(results)
