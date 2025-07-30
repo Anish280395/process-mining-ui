@@ -40,6 +40,11 @@ def generate_with_junk_steps(steps):
     insert_at = random.randint(0, len(steps))
     return steps[:insert_at] + junk_steps + steps[insert_at:]
 
+SCENARIO_DURATIONS = {
+    "SCE001": 10,
+    "SCE002": 15,
+}
+
 def generate_edge_case_dataset(num_orders=100, generator_fn=None):
     data = []
     scenarios = list(SCENARIO_STEPS.keys())
@@ -60,8 +65,11 @@ def generate_edge_case_dataset(num_orders=100, generator_fn=None):
         else:
             actual_steps = planned_steps.copy()
 
-        step_duration = timedelta(minutes=10)
+        step_duration = timedelta(minutes=SCENARIO_DURATIONS.get(scenario, 10))
         planned_start_time = base_start + timedelta(days=i)
+
+        yield_qty = random.randint(80, 150)
+        scrap_qty = random.randint(0, 20)
 
         planned_times = [
             (planned_start_time + idx * step_duration, planned_start_time + (idx + 1) * step_duration)
@@ -101,8 +109,8 @@ def generate_edge_case_dataset(num_orders=100, generator_fn=None):
                 "As-Is-Master-Order-Processing-Position-No. as an ID": as_is_step_id,
                 "As-Is-Real-Order-Processing-Start-Time": actual_start,
                 "As-Is-Real-Order-Processing-End-Time": actual_end,
-                "Final Yield Quantity": 24,
-                "Total Scrap Quantity": 0,
+                "Final Yield Quantity": yield_qty,
+                "Total Scrap Quantity": scrap_qty,
             }
             data.append(row)
 
