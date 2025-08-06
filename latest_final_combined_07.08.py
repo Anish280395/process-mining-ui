@@ -18,44 +18,37 @@ SCENARIO_FLAGS = {
     "SCE005": {"Export Flag": 2, "Dangerous Flag": 2},
 }
 
-# ----------- Step manipulation functions -----------
+# --- Step modification functions ---
 def generate_neat_steps(steps): return steps.copy()
-
 def generate_out_of_order_steps(steps):
     steps = steps.copy()
     if len(steps) > 1:
         i, j = random.sample(range(len(steps)), 2)
         steps[i], steps[j] = steps[j], steps[i]
     return steps
-
 def generate_missing_steps(steps):
     steps = steps.copy()
     if len(steps) > 0:
-        missing = random.choice(steps)
-        steps.remove(missing)
+        steps.remove(random.choice(steps))
     return steps
-
 def generate_extra_steps(steps):
     steps = steps.copy()
-    junk = [f"JUNK{random.randint(100, 999)}" for _ in range(random.randint(1, 2))]
+    junk = [f"JUNK{random.randint(100, 999)}" for _ in range(2)]
     insert_at = random.randint(0, len(steps))
     return steps[:insert_at] + junk + steps[insert_at:]
-
 def generate_duplicate_steps(steps):
     steps = steps.copy()
     if steps:
-        dup = random.choice(steps)
-        steps.insert(random.randint(0, len(steps)), dup)
+        steps.insert(random.randint(0, len(steps)), random.choice(steps))
     return steps
 
-# ----------- Dataset generator -----------
 def generate_dataset(num_orders=100, mode="neat"):
     data = []
     scenarios = list(SCENARIO_STEPS.keys())
     base_start = datetime(2025, 7, 15, 8, 0, 0)
 
     for i in range(num_orders):
-        order_id = f"ORD{i+1:04d}"
+        order_id = f"{mode.upper()}_{i+1:04d}"  # ✅ prefix order id with mode
         customer_id = f"CUS{random.randint(1, 20):04d}"
         item_id = f"ITE{random.randint(1, 50):04d}"
 
@@ -64,14 +57,15 @@ def generate_dataset(num_orders=100, mode="neat"):
         dangerous_flag = SCENARIO_FLAGS[scenario]["Dangerous Flag"]
         planned_steps = SCENARIO_STEPS[scenario]
 
-        # Select actual steps based on mode
+        # --- Select actual steps pattern ---
         if mode == "neat":
             actual_steps = generate_neat_steps(planned_steps)
         elif mode == "mixed":
             r = random.random()
-            if r < 0.6: actual_steps = generate_neat_steps(planned_steps)
-            elif r < 0.8: actual_steps = generate_out_of_order_steps(planned_steps)
-            else: actual_steps = generate_missing_steps(planned_steps)
+            if r < 0.5: actual_steps = generate_neat_steps(planned_steps)
+            elif r < 0.7: actual_steps = generate_out_of_order_steps(planned_steps)
+            elif r < 0.85: actual_steps = generate_missing_steps(planned_steps)
+            else: actual_steps = generate_extra_steps(planned_steps)
         elif mode == "missing":
             actual_steps = generate_missing_steps(planned_steps)
         elif mode == "out_of_order":
@@ -84,13 +78,21 @@ def generate_dataset(num_orders=100, mode="neat"):
             actual_steps = generate_neat_steps(planned_steps)
         elif mode == "quantity":
             actual_steps = generate_neat_steps(planned_steps)
+        elif mode == "complex":
+            seq_choice = random.choice([
+                generate_out_of_order_steps,
+                generate_missing_steps,
+                generate_extra_steps,
+                generate_duplicate_steps
+            ])
+            actual_steps = seq_choice(planned_steps)
         else:
             actual_steps = planned_steps.copy()
 
-        # Duration handling
+        # --- Step duration ---
         step_duration = timedelta(minutes=10)
-        if mode == "delayed":
-            step_duration = timedelta(minutes=random.randint(15, 25))  # Delay steps
+        if mode in ["delayed", "complex"] and random.random() < 0.4:
+            step_duration = timedelta(minutes=random.randint(15, 25))
 
         planned_start_time = base_start + timedelta(days=i)
         planned_times = [(planned_start_time + idx * timedelta(minutes=10),
@@ -101,6 +103,13 @@ def generate_dataset(num_orders=100, mode="neat"):
         actual_times = [(actual_start_time + idx * step_duration,
                           actual_start_time + (idx + 1) * step_duration)
                          for idx in range(len(actual_steps))]
+
+        # --- Yield & scrap ---
+        final_yield = 24
+        scrap_qty = 0
+        if mode in ["quantity", "complex", "mixed"] and random.random() < 0.4:
+            final_yield = random.randint(15, 23)
+            scrap_qty = 24 - final_yield
 
         for idx, step in enumerate(planned_steps):
             if step in actual_steps:
@@ -113,12 +122,6 @@ def generate_dataset(num_orders=100, mode="neat"):
                 as_is_step_id = None
                 actual_start = None
                 actual_end = None
-
-            final_yield = 24
-            scrap_qty = 0
-            if mode == "quantity":
-                final_yield = random.randint(15, 23)
-                scrap_qty = 24 - final_yield
 
             row = {
                 "Order-No.": order_id,
@@ -151,8 +154,17 @@ if __name__ == "__main__":
         ("duplicates", "dataset_duplicates_07.08.csv"),
         ("delayed", "dataset_delayed_07.08.csv"),
         ("quantity", "dataset_quantity_issues_07.08.csv"),
+        ("complex", "dataset_complex_07.08.csv"),
     ]
+
+    master_df = pd.DataFrame()
+
     for mode, filename in modes:
-        df = generate_dataset(100, mode=mode)
+        df = generate_dataset(50, mode=mode)  # 50 rows per mode for variety
         df.to_csv(filename, index=False)
         print(f"Saved: {filename}")
+        master_df = pd.concat([master_df, df], ignore_index=True)
+
+    # Save final combined master file
+    master_df.to_csv("dataset_master_07.08.csv", index=False)
+    print(f"✅ Saved combined master dataset with {len(master_df)} rows → dataset_master_07.08.csv")

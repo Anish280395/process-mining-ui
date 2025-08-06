@@ -18,7 +18,7 @@ SCENARIO_FLAGS = {
     "SCE005": {"Export Flag": 2, "Dangerous Flag": 2},
 }
 
-# Step modification functions
+# --- Step modification functions ---
 def generate_neat_steps(steps): return steps.copy()
 def generate_out_of_order_steps(steps):
     steps = steps.copy()
@@ -60,7 +60,7 @@ def generate_dataset(num_orders=100, mode="neat"):
         dangerous_flag = SCENARIO_FLAGS[scenario]["Dangerous Flag"]
         planned_steps = SCENARIO_STEPS[scenario]
 
-        # Select actual steps pattern
+        # --- Select actual steps pattern ---
         if mode == "neat":
             actual_steps = generate_neat_steps(planned_steps)
         elif mode == "mixed":
@@ -77,14 +77,25 @@ def generate_dataset(num_orders=100, mode="neat"):
             actual_steps = generate_extra_steps(planned_steps)
         elif mode == "duplicates":
             actual_steps = generate_duplicate_steps(planned_steps)
-        elif mode in ["delayed", "quantity", "complex"]:
+        elif mode == "delayed":
             actual_steps = generate_neat_steps(planned_steps)
+        elif mode == "quantity":
+            actual_steps = generate_neat_steps(planned_steps)
+        elif mode == "complex":
+            # ✅ Complex mode mixes multiple issues
+            seq_choice = random.choice([
+                generate_out_of_order_steps,
+                generate_missing_steps,
+                generate_extra_steps,
+                generate_duplicate_steps
+            ])
+            actual_steps = seq_choice(planned_steps)
         else:
             actual_steps = planned_steps.copy()
 
-        # Step duration
+        # --- Step duration logic ---
         step_duration = timedelta(minutes=10)
-        if mode in ["delayed", "complex"] and random.random() < 0.3:
+        if mode in ["delayed", "complex"] and random.random() < 0.4:
             step_duration = timedelta(minutes=random.randint(15, 25))
 
         planned_start_time = base_start + timedelta(days=i)
@@ -97,7 +108,7 @@ def generate_dataset(num_orders=100, mode="neat"):
                           actual_start_time + (idx + 1) * step_duration)
                          for idx in range(len(actual_steps))]
 
-        # Yield and scrap logic
+        # --- Yield & scrap logic ---
         final_yield = 24
         scrap_qty = 0
         if mode in ["quantity", "complex", "mixed"] and random.random() < 0.4:
