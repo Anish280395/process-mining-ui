@@ -8,7 +8,7 @@ from backend.utils import detect_breaches, generate_breach_plot, calculate_quant
 app = Flask(__name__)
 CORS(app)
 
-# Apply global matplotlib style for corporate theme
+# Global Matplotlib style
 plt.rcParams.update({
     "axes.titlesize": 14,
     "axes.titleweight": "bold",
@@ -59,6 +59,12 @@ def style_ax(ax, title, xlabel=None, ylabel=None):
     if ylabel:
         ax.set_ylabel(ylabel, fontsize=12, color="#2d3748")
     ax.grid(axis="y", linestyle="--", alpha=0.6)
+
+def most_common_breach(series):
+    filtered = series[series != 'None']
+    if filtered.empty:
+        return 'None'
+    return filtered.mode().iloc[0]
 
 @app.route('/analyze-with-dashboard', methods=['POST'])
 def analyze_with_dashboard():
@@ -167,6 +173,7 @@ def analyze_with_dashboard():
         safe_results = convert_types(results)
         df_results = pd.DataFrame(safe_results)
 
+        # Scenario Summary
         scenario_summary_json = []
         if not df_results.empty:
             scenario_summary = df_results.groupby('Derived_Scenario').agg({
@@ -174,7 +181,7 @@ def analyze_with_dashboard():
                 'Out_of_Order_Steps_Count': 'mean',
                 'Time_Deviation_Minutes': 'mean',
                 'Order_ID': 'count',
-                'Breach_Type': lambda x: x.mode().iloc[0] if not x.mode().empty else 'None',
+                'Breach_Type': most_common_breach,
                 'Total_Yield': 'sum',
                 'Total_Scrap': 'sum'
             }).rename(columns={
@@ -190,9 +197,7 @@ def analyze_with_dashboard():
 
         chart_base64 = generate_breach_plot(results)
 
-        # --------------------
-        # DASHBOARD CHARTS
-        # --------------------
+        # Dashboard charts
         charts = {}
 
         # Chart 1: Scenario Summary
@@ -201,7 +206,7 @@ def analyze_with_dashboard():
         style_ax(ax1, "Scenario Summary", ylabel="Number of Orders")
         charts["scenario_summary"] = fig_to_base64(fig1)
 
-        # Chart 2: Overall Breach Counts
+        # Chart 2: Breach vs No Breach
         breach_counts = pd.Series([r['Breach_Type'] != 'None' for r in safe_results]).value_counts()
         fig2, ax2 = plt.subplots()
         breach_counts.plot(kind='bar', color=[CORPORATE_COLORS["green"], CORPORATE_COLORS["red"]], ax=ax2)
@@ -211,11 +216,22 @@ def analyze_with_dashboard():
 
         # Chart 3: Breach Type Distribution
         fig3, ax3 = plt.subplots()
-        pd.Series([r['Breach_Type'] for r in safe_results]).value_counts().plot(
-            kind='pie', autopct='%1.1f%%', colors=[
-                CORPORATE_COLORS["red"], CORPORATE_COLORS["orange"],
-                CORPORATE_COLORS["yellow"], CORPORATE_COLORS["green"]
-            ], ax=ax3
+
+        # Calculate counts and percentages
+        breach_type_series = pd.Series([r['Breach_Type'] for r in safe_results]).value_counts()
+        labels = [f"{label} ({count})" for label, count in zip(breach_type_series.index, breach_type_series.values)]
+
+        breach_type_series.plot(
+            kind='pie',
+            labels=labels,  # Show name + count
+            autopct=lambda pct: f"{pct:.1f}%" if pct > 0 else '',
+            colors=[
+                CORPORATE_COLORS["red"],
+                CORPORATE_COLORS["orange"],
+                CORPORATE_COLORS["yellow"],
+                CORPORATE_COLORS["green"]
+            ],
+            ax=ax3
         )
         ax3.set_ylabel("")
         style_ax(ax3, "Breach Type Distribution")
@@ -229,13 +245,22 @@ def analyze_with_dashboard():
         style_ax(ax4, "Impact of Breach on Time & Yield", "Time Deviation (minutes)", "Quantity Deviation (%)")
         charts["impact_chart"] = fig_to_base64(fig4)
 
-        # Chart 5: Scenario vs Breach Type
+        # Chart 5: Scenario vs Breach Type (with percentage labels)
         scen_breach_df = df_results.groupby(['Derived_Scenario', 'Breach_Type']).size().unstack(fill_value=0)
         fig5, ax5 = plt.subplots()
         scen_breach_df.plot(kind='bar', stacked=True, ax=ax5, color=[
             CORPORATE_COLORS["green"], CORPORATE_COLORS["red"], CORPORATE_COLORS["orange"], CORPORATE_COLORS["yellow"]
         ])
         style_ax(ax5, "Scenario vs Breach Type", ylabel="Number of Orders")
+        for idx, row in scen_breach_df.iterrows():
+            total = row.sum()
+            cumulative = 0
+            for value in row:
+                if value > 0:
+                    percentage = (value / total) * 100
+                    ax5.text(cumulative + (value / 2), idx, f"{percentage:.1f}%",
+                             ha='center', va='center', color="black", fontsize=8)
+                    cumulative += value
         charts["scenario_breach_type"] = fig_to_base64(fig5)
 
         # Chart 6: Time Deviation Distribution
