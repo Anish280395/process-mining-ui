@@ -143,7 +143,6 @@ def analyze_with_dashboard():
             else:
                 breach_type = "None"
 
-            # ✅ Fix: Populate Details field
             details_parts = []
             if missing_steps:
                 details_parts.append("<strong>Missing Steps:</strong><ul>" +
@@ -187,7 +186,6 @@ def analyze_with_dashboard():
         safe_results = convert_types(results)
         df_results = pd.DataFrame(safe_results)
 
-        # Scenario Summary
         scenario_summary_json = []
         if not df_results.empty:
             scenario_summary = df_results.groupby('Derived_Scenario').agg({
@@ -211,14 +209,62 @@ def analyze_with_dashboard():
 
         chart_base64 = generate_breach_plot(results)
 
-        # Dashboard charts (your existing code for fig1 to fig6) here...
-        # ✅ Keep your current chart generation logic unchanged
+        # ✅ Build dashboard charts
+        charts = {}
+
+        # Chart 1
+        fig1, ax1 = plt.subplots()
+        scenario_counts = df['Planed-Master-Scenario-No.'].value_counts()
+        scenario_counts.plot(kind='bar', color=CORPORATE_COLORS["blue"], ax=ax1)
+        style_ax(ax1, "Scenario Summary", ylabel="Number of Orders")
+        charts["scenario_summary"] = fig_to_base64(fig1)
+
+        # Chart 2
+        breach_counts = pd.Series([r['Breach_Type'] != 'None' for r in safe_results]).value_counts()
+        fig2, ax2 = plt.subplots()
+        breach_counts.plot(kind='bar', color=[CORPORATE_COLORS["green"], CORPORATE_COLORS["red"]], ax=ax2)
+        style_ax(ax2, "Breach vs No Breach", ylabel="Number of Orders")
+        ax2.set_xticklabels(['No Breach', 'Breach'], rotation=0)
+        charts["breach_counts"] = fig_to_base64(fig2)
+
+        # Chart 3
+        breach_type_counts = pd.Series([r['Breach_Type'] for r in safe_results]).value_counts()
+        fig3, ax3 = plt.subplots()
+        breach_type_counts.plot(kind='pie', autopct='%1.1f%%', colors=[
+            CORPORATE_COLORS["red"], CORPORATE_COLORS["orange"], CORPORATE_COLORS["yellow"], CORPORATE_COLORS["green"]
+        ], ax=ax3)
+        ax3.set_ylabel("")
+        style_ax(ax3, "Breach Type Distribution")
+        charts["breach_type_dist"] = fig_to_base64(fig3)
+
+        # Chart 4
+        time_dev = [r['Time_Deviation_Minutes'] for r in safe_results if r['Time_Deviation_Minutes'] is not None]
+        qty_dev = [r['Quantity_Deviation_Percent'] for r in safe_results]
+        fig4, ax4 = plt.subplots()
+        ax4.scatter(time_dev, qty_dev, c=CORPORATE_COLORS["blue"])
+        style_ax(ax4, "Impact on Time & Yield", "Time Deviation (minutes)", "Quantity Deviation (%)")
+        charts["impact_chart"] = fig_to_base64(fig4)
+
+        # Chart 5
+        scen_breach_df = df_results.groupby(['Derived_Scenario', 'Breach_Type']).size().unstack(fill_value=0)
+        fig5, ax5 = plt.subplots()
+        scen_breach_df.plot(kind='bar', stacked=True, ax=ax5, color=[
+            CORPORATE_COLORS["green"], CORPORATE_COLORS["red"], CORPORATE_COLORS["orange"], CORPORATE_COLORS["yellow"]
+        ])
+        style_ax(ax5, "Scenario vs Breach Type", ylabel="Number of Orders")
+        charts["scenario_breach_type"] = fig_to_base64(fig5)
+
+        # Chart 6
+        fig6, ax6 = plt.subplots()
+        ax6.hist(time_dev, bins=15, color=CORPORATE_COLORS["blue"], edgecolor="white")
+        style_ax(ax6, "Time Deviation Distribution", "Minutes", "Frequency")
+        charts["time_dev_dist"] = fig_to_base64(fig6)
 
         return jsonify({
             "results": safe_results,
             "scenario_summary": scenario_summary_json,
-            "chart": chart_base64
-            # plus "dashboard": charts if you have that logic above
+            "chart": chart_base64,
+            "dashboard": charts
         })
 
     except Exception as e:
