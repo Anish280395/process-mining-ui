@@ -188,3 +188,57 @@ footer {
     border-radius: 6px;
     margin-top: 30px;
 }
+
+#dashboardCharts img {
+    border: 1px solid #ccc;
+    padding: 5px;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#dashboardCharts h3 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* Dashboard Chart Section Styling */
+#dashboardCharts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+#dashboardCharts div {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#dashboardCharts div:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+#dashboardCharts h3 {
+    font-size: 1.1rem;
+    color: #2b6cb0;
+    /* corporate blue */
+    margin-bottom: 10px;
+    text-align: center;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 5px;
+}
+
+#dashboardCharts img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    border: 1px solid #cbd5e0;
+    padding: 5px;
+    background-color: #f8fafc;
+}

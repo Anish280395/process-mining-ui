@@ -1,11 +1,28 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
-import io
-from backend.utils import detect_breaches, generate_breach_plot, calculate_quantity_deviation
+import io, base64
+import matplotlib.pyplot as plt
+from backend.utils import detect_breaches, generate_breach_plot, calculate_quantity_deviation, CORPORATE_COLORS
 
 app = Flask(__name__)
 CORS(app)
+
+# Apply global matplotlib style for corporate theme
+plt.rcParams.update({
+    "axes.titlesize": 14,
+    "axes.titleweight": "bold",
+    "axes.labelsize": 12,
+    "axes.labelcolor": "#2d3748",
+    "axes.edgecolor": "#CBD5E0",
+    "xtick.color": "#2d3748",
+    "ytick.color": "#2d3748",
+    "grid.color": "#CBD5E0",
+    "grid.linestyle": "--",
+    "grid.alpha": 0.6,
+    "figure.facecolor": "white",
+    "axes.facecolor": "white"
+})
 
 def safe_duration(start, end):
     try:
@@ -21,13 +38,30 @@ def convert_types(obj):
         return [convert_types(i) for i in obj]
     elif isinstance(obj, dict):
         return {k: convert_types(v) for k, v in obj.items()}
-    elif hasattr(obj, 'item'):  # numpy scalar
+    elif hasattr(obj, 'item'):
         return obj.item()
     else:
         return obj
 
-@app.route('/analyze', methods=['POST'])
-def analyze():
+def fig_to_base64(fig):
+    buf = io.BytesIO()
+    plt.tight_layout()
+    fig.savefig(buf, format="png", facecolor="white")
+    buf.seek(0)
+    encoded = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close(fig)
+    return f"data:image/png;base64,{encoded}"
+
+def style_ax(ax, title, xlabel=None, ylabel=None):
+    ax.set_title(title, fontsize=14, color="#2d3748", fontweight="bold")
+    if xlabel:
+        ax.set_xlabel(xlabel, fontsize=12, color="#2d3748")
+    if ylabel:
+        ax.set_ylabel(ylabel, fontsize=12, color="#2d3748")
+    ax.grid(axis="y", linestyle="--", alpha=0.6)
+
+@app.route('/analyze-with-dashboard', methods=['POST'])
+def analyze_with_dashboard():
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No file uploaded"}), 400
@@ -35,7 +69,6 @@ def analyze():
         file = request.files['file']
         filename = file.filename.lower()
 
-        # Support CSV and Excel files
         if filename.endswith('.csv'):
             df = pd.read_csv(file)
         elif filename.endswith(('.xls', '.xlsx')):
@@ -44,7 +77,6 @@ def analyze():
         else:
             return jsonify({"error": "Unsupported file format. Upload CSV or Excel."}), 400
 
-        # Required columns
         required_columns = [
             'Order-No.', 'Customer-No.', 'Item-No.',
             'Export to not EU [1 = n, 2 = y]', 'Dangerous Good [1 = n, 2 = y]',
@@ -64,7 +96,6 @@ def analyze():
         if missing_cols:
             return jsonify({"error": f"Missing columns: {missing_cols}"}), 400
 
-        # Convert date/time columns to datetime objects
         date_cols = [
             'Planed-Master-Order-Processing-Start-Time',
             'Planed-Master-Order-Processing-End-Time',
@@ -76,7 +107,6 @@ def analyze():
 
         results = []
         grouped = df.groupby(['Order-No.', 'Item-No.'])
-
         for (order_id, item_id), group in grouped:
             planned_steps = list(group.sort_values('Planed-Master-Order-Processing-Ongoing Position No.')[
                 'Planed-Master-Order-Processing-Position-No. as an ID'])
@@ -94,11 +124,6 @@ def analyze():
             actual_duration = safe_duration(actual_start, actual_end)
             time_deviation = (actual_duration - planned_duration) if (planned_duration is not None and actual_duration is not None) else None
 
-            planned_start_str = planned_start.strftime("%Y-%m-%d %H:%M") if pd.notna(planned_start) else None
-            planned_end_str = planned_end.strftime("%Y-%m-%d %H:%M") if pd.notna(planned_end) else None
-            actual_start_str = actual_start.strftime("%Y-%m-%d %H:%M") if pd.notna(actual_start) else None
-            actual_end_str = actual_end.strftime("%Y-%m-%d %H:%M") if pd.notna(actual_end) else None
-
             total_yield = group['Final Yield Quantity'].fillna(0).sum()
             total_scrap = group['Total Scrap Quantity'].fillna(0).sum()
 
@@ -111,16 +136,6 @@ def analyze():
             else:
                 breach_type = "None"
 
-            details_parts = []
-            if missing_steps:
-                details_parts.append("<strong>Missing Steps:</strong><ul>" + ''.join(f"<li>{s}</li>" for s in missing_steps) + "</ul>")
-            if out_of_order_steps:
-                details_parts.append("<strong>Out of Order:</strong><ul>" + ''.join(f"<li>{s}</li>" for s in out_of_order_steps) + "</ul>")
-            if not details_parts:
-                details_parts.append("<strong>No Breach</strong>")
-            # Add counts inside Details
-            details_parts.append(f"<strong>Counts:</strong> Missing - {len(missing_steps)} | Out-of-Order - {len(out_of_order_steps)}")
-
             results.append({
                 "Order_ID": order_id,
                 "Customer_ID": group['Customer-No.'].iloc[0],
@@ -131,10 +146,10 @@ def analyze():
                 "Scenario_Used": group['Planed-Master-Scenario-No.'].iloc[0],
                 "Planned_Steps_Count": len(planned_steps),
                 "As_Is_Steps_Count": len(actual_steps),
-                "Planned_Start": planned_start_str,
-                "Planned_End": planned_end_str,
-                "Actual_Start": actual_start_str,
-                "Actual_End": actual_end_str,
+                "Planned_Start": planned_start.strftime("%Y-%m-%d %H:%M") if pd.notna(planned_start) else None,
+                "Planned_End": planned_end.strftime("%Y-%m-%d %H:%M") if pd.notna(planned_end) else None,
+                "Actual_Start": actual_start.strftime("%Y-%m-%d %H:%M") if pd.notna(actual_start) else None,
+                "Actual_End": actual_end.strftime("%Y-%m-%d %H:%M") if pd.notna(actual_end) else None,
                 "Time_Planned_Minutes": planned_duration,
                 "Time_Actual_Minutes": actual_duration,
                 "Time_Deviation_Minutes": time_deviation,
@@ -144,16 +159,15 @@ def analyze():
                 "Out_of_Order_Steps": out_of_order_steps,
                 "Case_ID": f"{order_id}_{item_id}",
                 "Breach_Type": breach_type,
-                "Details": "<br>".join(details_parts),
                 "Total_Yield": total_yield,
                 "Total_Scrap": total_scrap,
                 "Quantity_Deviation_Percent": calculate_quantity_deviation(total_yield, total_scrap),
             })
 
         safe_results = convert_types(results)
-
         df_results = pd.DataFrame(safe_results)
 
+        scenario_summary_json = []
         if not df_results.empty:
             scenario_summary = df_results.groupby('Derived_Scenario').agg({
                 'Missing_Steps_Count': 'mean',
@@ -173,15 +187,68 @@ def analyze():
                 'Total_Scrap': 'Sum_Total_Scrap'
             }).reset_index()
             scenario_summary_json = convert_types(scenario_summary.to_dict(orient='records'))
-        else:
-            scenario_summary_json = []
 
         chart_base64 = generate_breach_plot(results)
+
+        # --------------------
+        # DASHBOARD CHARTS
+        # --------------------
+        charts = {}
+
+        # Chart 1: Scenario Summary
+        fig1, ax1 = plt.subplots()
+        df['Planed-Master-Scenario-No.'].value_counts().plot(kind='bar', color=CORPORATE_COLORS["blue"], ax=ax1)
+        style_ax(ax1, "Scenario Summary", ylabel="Number of Orders")
+        charts["scenario_summary"] = fig_to_base64(fig1)
+
+        # Chart 2: Overall Breach Counts
+        breach_counts = pd.Series([r['Breach_Type'] != 'None' for r in safe_results]).value_counts()
+        fig2, ax2 = plt.subplots()
+        breach_counts.plot(kind='bar', color=[CORPORATE_COLORS["green"], CORPORATE_COLORS["red"]], ax=ax2)
+        style_ax(ax2, "Breach vs No Breach", ylabel="Number of Orders")
+        ax2.set_xticklabels(['No Breach', 'Breach'], rotation=0)
+        charts["breach_counts"] = fig_to_base64(fig2)
+
+        # Chart 3: Breach Type Distribution
+        fig3, ax3 = plt.subplots()
+        pd.Series([r['Breach_Type'] for r in safe_results]).value_counts().plot(
+            kind='pie', autopct='%1.1f%%', colors=[
+                CORPORATE_COLORS["red"], CORPORATE_COLORS["orange"],
+                CORPORATE_COLORS["yellow"], CORPORATE_COLORS["green"]
+            ], ax=ax3
+        )
+        ax3.set_ylabel("")
+        style_ax(ax3, "Breach Type Distribution")
+        charts["breach_type_dist"] = fig_to_base64(fig3)
+
+        # Chart 4: Impact on Time & Yield
+        time_dev = [r['Time_Deviation_Minutes'] for r in safe_results if r['Time_Deviation_Minutes'] is not None]
+        qty_dev = [r['Quantity_Deviation_Percent'] for r in safe_results if 'Quantity_Deviation_Percent' in r]
+        fig4, ax4 = plt.subplots()
+        ax4.scatter(time_dev, qty_dev, c=CORPORATE_COLORS["blue"])
+        style_ax(ax4, "Impact of Breach on Time & Yield", "Time Deviation (minutes)", "Quantity Deviation (%)")
+        charts["impact_chart"] = fig_to_base64(fig4)
+
+        # Chart 5: Scenario vs Breach Type
+        scen_breach_df = df_results.groupby(['Derived_Scenario', 'Breach_Type']).size().unstack(fill_value=0)
+        fig5, ax5 = plt.subplots()
+        scen_breach_df.plot(kind='bar', stacked=True, ax=ax5, color=[
+            CORPORATE_COLORS["green"], CORPORATE_COLORS["red"], CORPORATE_COLORS["orange"], CORPORATE_COLORS["yellow"]
+        ])
+        style_ax(ax5, "Scenario vs Breach Type", ylabel="Number of Orders")
+        charts["scenario_breach_type"] = fig_to_base64(fig5)
+
+        # Chart 6: Time Deviation Distribution
+        fig6, ax6 = plt.subplots()
+        ax6.hist(time_dev, bins=15, color=CORPORATE_COLORS["blue"], edgecolor="white")
+        style_ax(ax6, "Time Deviation Distribution", "Minutes", "Frequency")
+        charts["time_dev_dist"] = fig_to_base64(fig6)
 
         return jsonify({
             "results": safe_results,
             "scenario_summary": scenario_summary_json,
-            "chart": chart_base64
+            "chart": chart_base64,
+            "dashboard": charts
         })
 
     except Exception as e:
