@@ -34,6 +34,7 @@
 
   <!-- Tab Contents -->
   <section id="results-section">
+    <!-- BASIC TAB -->
     <div id="basic" class="tab-content active">
       <table id="basicTable">
         <thead>
@@ -46,6 +47,7 @@
       </table>
     </div>
 
+    <!-- TIMING TAB -->
     <div id="timing" class="tab-content">
       <table id="timingTable">
         <thead>
@@ -59,6 +61,7 @@
       </table>
     </div>
 
+    <!-- BREACH TAB -->
     <div id="breach" class="tab-content">
       <table id="breachTable">
         <thead>
@@ -71,6 +74,7 @@
       </table>
     </div>
 
+    <!-- QUANTITY TAB -->
     <div id="quantity" class="tab-content">
       <table id="quantityTable">
         <thead>
@@ -82,19 +86,21 @@
       </table>
     </div>
 
+    <!-- DASHBOARD TAB -->
     <div id="dashboard" class="tab-content">
       <h2>Management Dashboard</h2>
-      <div id="dashboardCharts" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-top: 20px;">
-        <div><h3>Scenario Summary</h3><img id="chartScenarioSummary" style="max-width:100%;"></div>
-        <div><h3>Breach Counts</h3><img id="chartBreachCounts" style="max-width:100%;"></div>
-        <div><h3>Breach Type Distribution</h3><img id="chartBreachTypeDist" style="max-width:100%;"></div>
-        <div><h3>Impact on Time & Yield</h3><img id="chartImpact" style="max-width:100%;"></div>
-        <div><h3>Scenario vs Breach Type</h3><img id="chartScenarioBreachType" style="max-width:100%;"></div>
-        <div><h3>Time Deviation Distribution</h3><img id="chartTimeDevDist" style="max-width:100%;"></div>
+      <div id="dashboardCharts" class="chart-grid">
+        <div class="chart-card"><h3>Scenario Summary</h3><img id="chartScenarioSummary" alt="Scenario Summary Chart"></div>
+        <div class="chart-card"><h3>Breach Counts</h3><img id="chartBreachCounts" alt="Breach Counts Chart"></div>
+        <div class="chart-card"><h3>Breach Type Distribution</h3><img id="chartBreachTypeDist" alt="Breach Type Distribution Chart"></div>
+        <div class="chart-card"><h3>Impact on Time & Yield</h3><img id="chartImpact" alt="Impact on Time & Yield Chart"></div>
+        <div class="chart-card"><h3>Scenario vs Breach Type</h3><img id="chartScenarioBreachType" alt="Scenario vs Breach Type Chart"></div>
+        <div class="chart-card"><h3>Time Deviation Distribution</h3><img id="chartTimeDevDist" alt="Time Deviation Distribution Chart"></div>
       </div>
     </div>
   </section>
 
+  <!-- Scenario Summary Table -->
   <section id="scenario-summary-section">
     <h2>Scenario Summary</h2>
     <table id="scenarioSummaryTable">
@@ -108,6 +114,7 @@
     </table>
   </section>
 
+  <!-- Download Button -->
   <button id="downloadBtn">Download Report CSV</button>
 
   <footer>
@@ -115,5 +122,16 @@
   </footer>
 
   <script src="app.js"></script>
+  <script>
+    // Tab toggle
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+      });
+    });
+  </script>
 </body>
 </html>

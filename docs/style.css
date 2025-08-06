@@ -1,3 +1,4 @@
+/* ===== Base Layout ===== */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f4f6f8;
@@ -9,6 +10,7 @@ body {
 h1,
 h2 {
     color: #1a202c;
+    font-weight: 600;
 }
 
 nav {
@@ -26,6 +28,7 @@ nav a:hover {
     text-decoration: underline;
 }
 
+/* ===== Section Containers ===== */
 #upload-section,
 #results-section,
 #scenario-summary-section {
@@ -36,6 +39,7 @@ nav a:hover {
     margin-bottom: 30px;
 }
 
+/* ===== Buttons ===== */
 button {
     background-color: #2b6cb0;
     color: white;
@@ -56,6 +60,7 @@ button:disabled {
     cursor: not-allowed;
 }
 
+/* ===== Status Messages ===== */
 #statusMessage {
     margin-top: 10px;
     font-size: 1.1em;
@@ -76,7 +81,7 @@ button:disabled {
     text-align: center;
 }
 
-/* Tab Styling */
+/* ===== Tabs ===== */
 .tab-container {
     display: flex;
     gap: 10px;
@@ -112,7 +117,7 @@ button:disabled {
     display: block;
 }
 
-/* Tables */
+/* ===== Tables ===== */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -141,44 +146,54 @@ tr:hover {
     background-color: #edf2f7;
 }
 
-#breachChart {
-    display: block;
-    margin: 20px auto;
-    max-width: 100%;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-#results-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+/* ===== Dashboard Charts Grid ===== */
+#dashboardCharts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 20px;
-    flex-wrap: wrap;
-    border-top: 2px solid #2b6cb0;
-    padding-top: 10px;
+    margin-top: 20px;
 }
 
-#table-container {
-    flex: 2;
-    min-width: 300px;
+.chart-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-#chart-container {
-    flex: 1;
-    min-width: 250px;
+.chart-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.chart-card h3 {
+    font-size: 1.1rem;
+    color: #2b6cb0;
+    margin-bottom: 10px;
     text-align: center;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 5px;
 }
 
-#chart-container img {
+.chart-card img {
     max-width: 100%;
     height: auto;
-    border: 1px solid #ccc;
+    border-radius: 6px;
+    border: 1px solid #cbd5e0;
     padding: 5px;
-    background-color: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    background-color: #f8fafc;
 }
 
+/* ===== Scenario Summary Table ===== */
+#scenario-summary-section table th {
+    background-color: #2b6cb0;
+    color: white;
+}
+
+/* ===== Footer ===== */
 footer {
     text-align: center;
     padding: 15px;
@@ -189,56 +204,16 @@ footer {
     margin-top: 30px;
 }
 
-#dashboardCharts img {
-    border: 1px solid #ccc;
-    padding: 5px;
-    background-color: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
 
-#dashboardCharts h3 {
-    text-align: center;
-    margin-bottom: 10px;
-}
+    th,
+    td {
+        font-size: 0.85rem;
+        padding: 6px;
+    }
 
-/* Dashboard Chart Section Styling */
-#dashboardCharts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-}
-
-#dashboardCharts div {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    padding: 10px;
-    border: 1px solid #e2e8f0;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-#dashboardCharts div:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-}
-
-#dashboardCharts h3 {
-    font-size: 1.1rem;
-    color: #2b6cb0;
-    /* corporate blue */
-    margin-bottom: 10px;
-    text-align: center;
-    font-weight: 600;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 5px;
-}
-
-#dashboardCharts img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 6px;
-    border: 1px solid #cbd5e0;
-    padding: 5px;
-    background-color: #f8fafc;
+    .chart-card h3 {
+        font-size: 1rem;
+    }
 }

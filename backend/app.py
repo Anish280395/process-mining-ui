@@ -200,10 +200,20 @@ def analyze_with_dashboard():
         # Dashboard charts
         charts = {}
 
-        # Chart 1: Scenario Summary
+        # Chart 1: Scenario Summary (Count + Percentage)
         fig1, ax1 = plt.subplots()
-        df['Planed-Master-Scenario-No.'].value_counts().plot(kind='bar', color=CORPORATE_COLORS["blue"], ax=ax1)
+        scenario_counts = df['Planed-Master-Scenario-No.'].value_counts()
+        total_orders_scenarios = scenario_counts.sum() if scenario_counts.sum() > 0 else 1
+        scenario_counts.plot(kind='bar', color=CORPORATE_COLORS["blue"], ax=ax1)
         style_ax(ax1, "Scenario Summary", ylabel="Number of Orders")
+        for bar, count in zip(ax1.patches, scenario_counts.values):
+            percentage = (count / total_orders_scenarios) * 100
+            ax1.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{count} ({percentage:.1f}%)",
+                ha='center', va='bottom', fontsize=9, color="#2d3748"
+            )
         charts["scenario_summary"] = fig_to_base64(fig1)
 
         # Chart 2: Breach vs No Breach
@@ -214,16 +224,13 @@ def analyze_with_dashboard():
         ax2.set_xticklabels(['No Breach', 'Breach'], rotation=0)
         charts["breach_counts"] = fig_to_base64(fig2)
 
-        # Chart 3: Breach Type Distribution
+        # Chart 3: Breach Type Distribution (Count + Percentage)
         fig3, ax3 = plt.subplots()
-
-        # Calculate counts and percentages
         breach_type_series = pd.Series([r['Breach_Type'] for r in safe_results]).value_counts()
         labels = [f"{label} ({count})" for label, count in zip(breach_type_series.index, breach_type_series.values)]
-
         breach_type_series.plot(
             kind='pie',
-            labels=labels,  # Show name + count
+            labels=labels,
             autopct=lambda pct: f"{pct:.1f}%" if pct > 0 else '',
             colors=[
                 CORPORATE_COLORS["red"],
