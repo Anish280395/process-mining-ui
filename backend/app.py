@@ -200,7 +200,7 @@ def analyze_with_dashboard():
         # Dashboard charts
         charts = {}
 
-        # Chart 1: Scenario Summary (Count + Percentage)
+        # Chart 1: Scenario Summary (count + percentage)
         fig1, ax1 = plt.subplots()
         scenario_counts = df['Planed-Master-Scenario-No.'].value_counts()
         total_orders_scenarios = scenario_counts.sum() if scenario_counts.sum() > 0 else 1
@@ -224,7 +224,7 @@ def analyze_with_dashboard():
         ax2.set_xticklabels(['No Breach', 'Breach'], rotation=0)
         charts["breach_counts"] = fig_to_base64(fig2)
 
-        # Chart 3: Breach Type Distribution (Count + Percentage)
+        # Chart 3: Breach Type Distribution (count + percentage)
         fig3, ax3 = plt.subplots()
         breach_type_series = pd.Series([r['Breach_Type'] for r in safe_results]).value_counts()
         labels = [f"{label} ({count})" for label, count in zip(breach_type_series.index, breach_type_series.values)]
@@ -252,22 +252,31 @@ def analyze_with_dashboard():
         style_ax(ax4, "Impact of Breach on Time & Yield", "Time Deviation (minutes)", "Quantity Deviation (%)")
         charts["impact_chart"] = fig_to_base64(fig4)
 
-        # Chart 5: Scenario vs Breach Type (with percentage labels)
+        # Chart 5: Scenario vs Breach Type (with percentage labels, fixed coords)
         scen_breach_df = df_results.groupby(['Derived_Scenario', 'Breach_Type']).size().unstack(fill_value=0)
         fig5, ax5 = plt.subplots()
         scen_breach_df.plot(kind='bar', stacked=True, ax=ax5, color=[
             CORPORATE_COLORS["green"], CORPORATE_COLORS["red"], CORPORATE_COLORS["orange"], CORPORATE_COLORS["yellow"]
         ])
         style_ax(ax5, "Scenario vs Breach Type", ylabel="Number of Orders")
-        for idx, row in scen_breach_df.iterrows():
-            total = row.sum()
-            cumulative = 0
-            for value in row:
+
+        # Add percentage labels using patch positions
+        patches = ax5.patches
+        num_bars = len(scen_breach_df.index)
+        segments_per_bar = len(scen_breach_df.columns)
+
+        for i in range(num_bars):
+            total = scen_breach_df.iloc[i].sum()
+            for j, value in enumerate(scen_breach_df.iloc[i]):
                 if value > 0:
                     percentage = (value / total) * 100
-                    ax5.text(cumulative + (value / 2), idx, f"{percentage:.1f}%",
+                    bar_index = i * segments_per_bar + j
+                    bar = patches[bar_index]
+                    x = bar.get_x() + bar.get_width() / 2
+                    y = bar.get_y() + bar.get_height() / 2
+                    ax5.text(x, y, f"{percentage:.1f}%",
                              ha='center', va='center', color="black", fontsize=8)
-                    cumulative += value
+
         charts["scenario_breach_type"] = fig_to_base64(fig5)
 
         # Chart 6: Time Deviation Distribution
