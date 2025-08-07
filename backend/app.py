@@ -3,26 +3,10 @@ from flask_cors import CORS
 import pandas as pd
 import io, base64
 import matplotlib.pyplot as plt
-from backend.utils import detect_breaches, generate_breach_plot, calculate_quantity_deviation, CORPORATE_COLORS
+from backend.utils import detect_breaches, generate_breach_plot, calculate_quantity_deviation, CORPORATE_COLORS, SCENARIO_STEPS
 
 app = Flask(__name__)
 CORS(app)
-
-# Global Matplotlib style
-plt.rcParams.update({
-    "axes.titlesize": 14,
-    "axes.titleweight": "bold",
-    "axes.labelsize": 12,
-    "axes.labelcolor": "#2d3748",
-    "axes.edgecolor": "#CBD5E0",
-    "xtick.color": "#2d3748",
-    "ytick.color": "#2d3748",
-    "grid.color": "#CBD5E0",
-    "grid.linestyle": "--",
-    "grid.alpha": 0.6,
-    "figure.facecolor": "white",
-    "axes.facecolor": "white"
-})
 
 def safe_duration(start, end):
     try:
@@ -115,12 +99,12 @@ def analyze_with_dashboard():
         results = []
         grouped = df.groupby(['Order-No.', 'Item-No.'])
         for (order_id, item_id), group in grouped:
-            planned_steps = list(group.sort_values('Planed-Master-Order-Processing-Ongoing Position No.')[
-                'Planed-Master-Order-Processing-Position-No. as an ID'])
+            scenario = group['Planed-Master-Scenario-No.'].iloc[0]
+            planned_steps = SCENARIO_STEPS.get(scenario, [])  # <- Always use reference!
             actual_steps = list(group.sort_values('As-Is-Real-Order-Processing-Ongoing Position No.')[
                 'As-Is-Master-Order-Processing-Position-No. as an ID'])
 
-            missing_steps, out_of_order_steps = detect_breaches(planned_steps, actual_steps)
+            missing_steps, out_of_order_steps, extra_steps, duplicates = detect_breaches(planned_steps, actual_steps)
 
             planned_start = group['Planed-Master-Order-Processing-Start-Time'].min()
             planned_end = group['Planed-Master-Order-Processing-End-Time'].max()
@@ -134,25 +118,37 @@ def analyze_with_dashboard():
             total_yield = group['Final Yield Quantity'].fillna(0).sum()
             total_scrap = group['Total Scrap Quantity'].fillna(0).sum()
 
+            # Breach type logic
+            breach_type = "None"
             if missing_steps and out_of_order_steps:
                 breach_type = "Both"
             elif missing_steps:
                 breach_type = "Missing"
             elif out_of_order_steps:
                 breach_type = "Out of Order"
-            else:
-                breach_type = "None"
+            if extra_steps or duplicates:
+                if breach_type == "None":
+                    breach_type = "Extra/Duplicates"
+                else:
+                    breach_type += " + Extra/Duplicates"
 
+            # Details
             details_parts = []
             if missing_steps:
                 details_parts.append("<strong>Missing Steps:</strong><ul>" +
-                                     ''.join(f"<li>{s}</li>" for s in missing_steps) + "</ul>")
+                                    ''.join(f"<li>{s}</li>" for s in missing_steps) + "</ul>")
             if out_of_order_steps:
                 details_parts.append("<strong>Out of Order:</strong><ul>" +
-                                     ''.join(f"<li>{s}</li>" for s in out_of_order_steps) + "</ul>")
+                                    ''.join(f"<li>{s}</li>" for s in out_of_order_steps) + "</ul>")
+            if extra_steps:
+                details_parts.append("<strong>Extra Steps (unexpected):</strong><ul>" +
+                                    ''.join(f"<li>{s}</li>" for s in extra_steps) + "</ul>")
+            if duplicates:
+                details_parts.append("<strong>Duplicate Steps:</strong><ul>" +
+                                    ''.join(f"<li>{s}</li>" for s in duplicates) + "</ul>")
             if not details_parts:
                 details_parts.append("<strong>No Breach</strong>")
-            details_parts.append(f"<strong>Counts:</strong> Missing - {len(missing_steps)} | Out-of-Order - {len(out_of_order_steps)}")
+            details_parts.append(f"<strong>Counts:</strong> Missing - {len(missing_steps)} | Out-of-Order - {len(out_of_order_steps)} | Extra - {len(extra_steps)} | Duplicates - {len(duplicates)}")
 
             results.append({
                 "Order_ID": order_id,
@@ -160,8 +156,8 @@ def analyze_with_dashboard():
                 "Item_ID": item_id,
                 "Export_Flag": group['Export to not EU [1 = n, 2 = y]'].iloc[0],
                 "Dangerous_Flag": group['Dangerous Good [1 = n, 2 = y]'].iloc[0],
-                "Derived_Scenario": group['Planed-Master-Scenario-No.'].iloc[0],
-                "Scenario_Used": group['Planed-Master-Scenario-No.'].iloc[0],
+                "Derived_Scenario": scenario,
+                "Scenario_Used": scenario,
                 "Planned_Steps_Count": len(planned_steps),
                 "As_Is_Steps_Count": len(actual_steps),
                 "Planned_Start": planned_start.strftime("%Y-%m-%d %H:%M") if pd.notna(planned_start) else None,
@@ -173,8 +169,12 @@ def analyze_with_dashboard():
                 "Time_Deviation_Minutes": time_deviation,
                 "Missing_Steps_Count": len(missing_steps),
                 "Out_of_Order_Steps_Count": len(out_of_order_steps),
+                "Extra_Steps_Count": len(extra_steps),
+                "Duplicate_Steps_Count": len(duplicates),
                 "Missing_Steps": missing_steps,
                 "Out_of_Order_Steps": out_of_order_steps,
+                "Extra_Steps": extra_steps,
+                "Duplicates": duplicates,
                 "Case_ID": f"{order_id}_{item_id}",
                 "Breach_Type": breach_type,
                 "Details": "<br>".join(details_parts),
@@ -209,8 +209,9 @@ def analyze_with_dashboard():
 
         chart_base64 = generate_breach_plot(results)
 
-        # ✅ Build dashboard charts
+        # Dashboard charts (no change needed)
         charts = {}
+        # ... [charts code remains unchanged, as in your existing app.py] ...
 
         # Chart 1
         fig1, ax1 = plt.subplots()
