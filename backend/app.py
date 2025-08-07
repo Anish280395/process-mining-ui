@@ -4,6 +4,7 @@ import pandas as pd
 import io, base64
 import matplotlib.pyplot as plt
 from backend.utils import detect_breaches, generate_breach_plot, calculate_quantity_deviation, CORPORATE_COLORS, SCENARIO_STEPS
+import math
 
 app = Flask(__name__)
 CORS(app)
@@ -23,7 +24,16 @@ def convert_types(obj):
     elif isinstance(obj, dict):
         return {k: convert_types(v) for k, v in obj.items()}
     elif hasattr(obj, 'item'):
-        return obj.item()
+        val = obj.item()
+        if val is None:
+            return None
+        if isinstance(val, float) and math.isnan(val):
+            return None
+        return val
+    elif obj is None:
+        return None
+    elif isinstance(obj, float) and math.isnan(obj):
+        return None
     else:
         return obj
 
